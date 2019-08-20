@@ -1,0 +1,199 @@
+module.exports = {
+  test: {
+    client: 'pg',
+    connection: 'postgres://localhost/test_db',
+    migrations: {
+      directory: __dirname + '/db/migrations'
+    },
+    seeds: {
+      directory: __dirname + '/db/seeds/test'
+    }
+  },
+  development: {
+    client: 'pg',
+    connection: 'postgres://localhost/development_db',
+    migrations: {
+      directory: __dirname + '/db/migrations'
+    },
+    seeds: {
+      directory: __dirname + '/db/seeds/development'
+    }
+  },
+  production: {
+    client: 'pg',
+    connection: process.env.DATABASE_URL,
+    migrations: {
+      directory: __dirname + '/db/migrations'
+    },
+    seeds: {
+      directory: __dirname + '/db/seeds/production'
+    }
+  }
+}
+*******************************************************************************************************
+var environment = process.env.NODE_ENV || 'development'
+var config = require('../knexfile.js')[environment]
+
+module.exports = require('knex')(config)
+*****************************************************************************************************
+exports.up = function(knex, Promise) {
+  return knex.schema.createTable('users', t => {
+      t.increments('id')
+      t.string('username')
+      t.string('email')
+  })
+};
+
+exports.down = function(knex, Promise) {
+  return knex.schema.dropTable('users')
+};
+*************************************************************************************************
+exports.seed = function(knex, Promise) {
+  // Deletes ALL existing entries
+  return knex('users').del()
+    .then(function () {
+      // Inserts seed entries
+      return knex('users').insert([
+        {username: 'fodark', email: 'mock@email.com'},
+        {username: 'john', email: 'mock2@email.com'},
+        {username: 'david', email: 'mock3@email.com'}
+      ]);
+    });
+};
+******************************************************************************************************
+const { Model } = require('objection');
+
+class User extends Model {
+  static get tableName() {
+    return 'users';
+  }
+}
+
+module.exports = User;
+***********************************************************************
+SELECT * 
+FROM messages
+WHERE user_id=your_id
+**********************************************************************
+const { Model } = require('objection');
+const knex = require('../db/knex')
+
+Model.knex(knex)
+
+class User extends Model {
+  static get tableName() {
+    return 'users';
+  }
+
+  static get relationMappings() {
+      const Message = require('./Message')
+      return {
+          messages: {
+              relation: Model.HasManyRelation,
+              modelClass: Message,
+              join: {
+                  from: 'users.id',
+                  to: 'messages.user_id'
+              }
+          }
+      }
+  }
+}
+
+module.exports = User;
+**************************************************************
+const { Model } = require('objection');
+const knex = require('../db/knex')
+
+Model.knex(knex)
+
+class Message extends Model {
+  static get tableName() {
+    return 'messages';
+  }
+
+  static get relationMappings() {
+      const User = require('./User')
+      return {
+          writer: {
+              relation: Model.BelongsToOneRelation,
+              modelClass: User,
+              join: {
+                  from: 'messages.user_id',
+                  to: 'users.id'
+              }
+          }
+      }
+  }
+}
+
+module.exports = Message;
+***************************************************************
+const express = require('express')
+const port = process.env.PORT || 3000
+
+const app = express()
+
+app.listen(port, () => {
+	console.log('Listening on port: ' + port)
+})
+**************************************************************
+const express = require('express')
+const router = express.Router()
+
+const User = require('../models/User')
+
+router.get('/users', (req, res) => {
+    User.query()
+        .then(users => {
+            res.json(users)
+        })
+})
+
+module.exports = {
+    router: router
+}
+********************************************************************
+const express = require('express')
+const port = process.env.PORT || 3000
+
+const app = express()
+
+// Endpoints
+app.use('/api', require('./api/users').router)
+
+app.listen(port, () => {
+	console.log('Listening on port: ' + port)
+})
+************************************************************************
+const express = require('express')
+const router = express.Router()
+
+const User = require('../models/User')
+
+router.get('/users', (req, res) => {
+    User.query()
+        .then(users => {
+            res.json(users)
+        })
+})
+
+router.get('/users/:id', (req, res) => {
+    let id = parseInt(req.params.id)
+    User.query()
+        .where('id', id)
+        .eager('messages')
+        .then(user => {
+            res.json(user)
+        })
+})
+
+module.exports = {
+    router: router
+}
+*************************************************************************
+User.query()
+  .where('id', id)
+  .eager('[pictures, messages.comments]')
+***********************************************************
+https://itnext.io/express-knex-objection-painless-api-with-db-74512c484f0c
